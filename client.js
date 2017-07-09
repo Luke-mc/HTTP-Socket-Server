@@ -1,98 +1,61 @@
 const net = require('net');
-const fs = require("fs");
-const readline = require('readline');
-var arg = process.argv[2];
-var flag = process.argv[3];
+const socket = new net.Socket();
 const date = new Date();
-var socket = new net.Socket();
+let arg = process.argv[2];
+let flag = process.argv[3];
+let port = 80;
 
-var port = 80;
+if(arg === "localhost"){
+  port = 8080;
+}
 
- if(arg === "localhost"){
-    port = 8080;
-  }
+socket.connect(port, arg, ()=>{
+  socket.write(header());
+});
 
-  socket.connect(port, arg, ()=>{
-    socket.write(header());
+socket.on("data", (data)=>{
+  let words = data.toString();
+  let head = words.split('\r\n\r\n')[0];
+  let body = words.split('\r\n\r\n')[1];
+  let code = head.split(' ')[1];
 
-  });
-
-  socket.on("data", (data)=>{
-    var words = data.toString();
-    var head = words.split('\r\n\r\n')[0];
-    var body = words.split('\r\n\r\n')[1];
-
-    if(flag === "H"){
-      process.stdout.write(head.toString());
-    }else if (flag === "B"){
-     process.stdout.write(body.toString());
-    }else{
-       process.stdout.write(words);
+  switch(flag){
+      case "H":
+        errorHandler(code, head);
+        break;
+      case "B":
+        errorHandler(code, body);
+        break;
+      default:
+        errorHandler(code, words);
     }
 
-    socket.destroy();
-  });
+  socket.destroy();
+});
 
 
-
-
-
-
-
-// socket.connect(80, arg, ()=>{
-//   if(socket.remotePort === 80){
-//     socket.write(header());
-//     socket.on("data", (data)=>{
-//     var words = data.toString();
-//     console.log(words);
-//     socket.end();});
-//   }else if(socket.remotePort === 8080){
-//     var socket2 = createSocket();
-//     socket2.connect(8080, arg,()=>{
-//     socket2.write(header());
-//     socket2.on("data", (data)=>{
-//     var words = data.toString();
-//     console.log(words);
-//     socket2.end(); });});
-//   }else if(socket.remotePort === 443){
-//       var socket3 = createSocket();
-//       socket3.connect(443, arg,()=>{
-//       socket3.write(header());
-//       socket3.on("data", (data)=>{
-//       var words = data.toString();
-//       console.log(words);
-//       socket3.end();
-//       }); });
-//      }
-//    });
-
-
-
-
-
+//Functions
 
 function header(){
   return `GET / HTTP/1.1\r\nHost: ${arg}\r\nConnection: close\r\n\r\n`;
 }
 
-function createSocket(){
-  var socket = new net.Socket();
-  return socket;
-}
-
-function errorHandler(code){
-  var result = null;
+function errorHandler(code, data){
+  let result = null;
   switch(code){
-    case 301:
+    case '301':
        result = "301 error";
-    break;
-    case 200:
-       result = "OK";
 
+    break;
+    case '200':
+       result = "200 OK";
     break;
     default:
       result = "404 Error";
-
   }
+  console.log("\r\n"+ "Code Message:" +"\r\n"+  result + "\r\n\r\n" + data.toString());
 }
+
+
+
 
